@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptCraft 2.0 - The Ultimate Prompt Studio</title>
+    <meta name="description" content="Visually build, test, and refine high-quality LLM prompts with a vast library of expert templates and a modern, interactive interface.">
+    <meta name="author" content="AI-Generated, Human-Refined">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 
+    ============================================================================
+    PromptCraft 2.0 - The Ultimate Prompt Studio
+    ============================================================================
+    
+    Welcome to the next generation of prompt engineering. This tool has been
+    rebuilt from the ground up to provide a superior, intuitive, and powerful
+    prompt creation experience.
+
+    1.  **Navigate with the Sidebar**: On the left, you'll find a comprehensive
+        library of over 40 templates. Use the search bar to instantly find
+        what you need. Click a template to load it.
+
+    2.  **Build in the Studio**: The central panel is your "Prompt Studio". 
+        Modify the pre-filled components (Objective, Context, etc.) to
+        tailor the prompt to your exact needs.
+
+    3.  **See Your Prompt Live**: The right-hand "Anatomy & Export" panel shows
+        your final prompt in real-time, color-coded for clarity.
+
+    4.  **Export with Ease**: Once perfected, use the one-click export buttons
+        to copy your prompt in Plaintext, Markdown, or JSON format.
+
+    5.  **Offline & Private**: Your work is saved in your browser and never
+        leaves your device. 100% privacy and offline functionality.
+        
+    6.  **Diagnostics Console**: Press `Ctrl+Shift+D` to toggle the dev console.
+    ============================================================================
+    -->
+
+    <style>
+        /* --- 1. Global Styles, Variables & Glassmorphism --- */
+        :root {
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: "Fira Code", "Roboto Mono", monospace;
+
+            /* Vibrant Color Palette */
+            --color-text: #EAE6FF;
+            --color-text-muted: #A099C7;
+            --color-primary: #8A79F7;
+            --color-accent: #3DD9E3;
+            --color-glass-bg: rgba(26, 24, 52, 0.4);
+            --color-glass-border: rgba(138, 121, 247, 0.2);
+            --color-dark-surface: #1A1834;
+            --color-bg-start: #0F0C29;
+            --color-bg-mid: #302B63;
+            --color-bg-end: #24243E;
+
+            /* Prompt Component Colors */
+            --c-objective: #FF6B6B;
+            --c-context: #4ECDC4;
+            --c-instructions: #45B7D1;
+            --c-examples: #FED766;
+            --c-constraints: #C77DFF;
+            --c-persona: #25D366;
+            
+            --star-inactive: #6A6696;
+            --star-active: #F9C80E;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: var(--font-sans);
+            color: var(--color-text);
+            background: linear-gradient(-45deg, var(--color-bg-start), var(--color-bg-mid), var(--color-bg-end));
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: var(--color-glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--color-glass-border);
+            border-radius: 12px;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--color-glass-border); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--color-primary); }
+
+        /* --- 2. Main Layout & Navigation --- */
+        .app-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            z-index: 100;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+        }
+        .sidebar.is-open { transform: translateX(0); }
+
+        .main-content {
+            transition: margin-left 0.3s ease-out;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        
+        .mobile-menu-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 101;
+            background: var(--color-glass-bg);
+            border: 1px solid var(--color-glass-border);
+            color: var(--color-text);
+            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .app-layout { grid-template-columns: 320px 1fr; }
+            .sidebar {
+                position: static;
+                transform: translateX(0);
+                height: 100vh;
+                padding-right: 0.75rem;
+            }
+            .mobile-menu-btn { display: none; }
+        }
+        
+        @media (min-width: 1280px) {
+            .content-grid { grid-template-columns: 2fr 1fr; }
+        }
+        
+        /* --- 3. Sidebar Content --- */
+        .sidebar-header {
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-glass-border);
+            margin-bottom: 1rem;
+        }
+        .sidebar-header h1 {
+            font-size: 1.5rem; margin: 0;
+            color: var(--color-accent);
+        }
+        .sidebar-search input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--color-glass-border);
+            color: var(--color-text);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .sidebar-search input::placeholder { color: var(--color-text-muted); }
+        .template-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .template-category h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            margin: 1.5rem 0 0.5rem;
+            letter-spacing: 1px;
+            padding-left: 0.75rem;
+        }
+        .template-item a {
+            display: block;
+            padding: 0.75rem;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--color-text);
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+        .template-item a:hover { background-color: var(--color-glass-bg); }
+        .template-item a.active { background-color: var(--color-primary); color: white; }
+        .template-item .name { font-weight: 500; }
+        .template-item .desc { font-size: 0.85rem; color: var(--color-text-muted); margin-top: 2px;}
+        .template-item a.active .desc { color: rgba(255,255,255,0.8); }
+
+        /* --- 4. Main Content & Prompt Studio --- */
+        .studio-panel, .anatomy-panel-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* Fix for flexbox overflow */
+        }
+        .anatomy-panel-wrapper {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+        .anatomy-panel { height: 100%; }
+        
+        .welcome-screen { text-align: center; padding: 4rem 1rem; }
+        .welcome-screen h2 { font-size: 2rem; color: var(--color-accent); }
+        .welcome-screen p { color: var(--color-text-muted); max-width: 500px; margin: 1rem auto; }
+        .main-card { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+        .main-card h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--color-accent); }
+        
+        details {
+            border: 1px solid var(--color-glass-border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        details:last-child { margin-bottom: 0; }
+        details[open] { background-color: rgba(0,0,0,0.1); }
+        summary {
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        summary::after {
+            content: '+'; font-size: 1.5rem; color: var(--color-text-muted);
+            transition: transform 0.2s ease-out;
+        }
+        details[open] > summary::after { transform: rotate(45deg); }
+
+        .details-content { padding: 0 1.25rem 1.25rem; }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            background-color: var(--color-dark-surface);
+            border: 1px solid var(--color-glass-border);
+            border-radius: 6px;
+            color: var(--color-text);
+            padding: 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px var(--color-primary);
+        }
+
+        .suggestion-box {
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stars { display: flex; gap: 0.25rem; }
+        .star { width: 16px; height: 16px; }
+
+        /* --- 5. Anatomy & Export Panel --- */
+        #prompt-anatomy-output {
+            flex-grow: 1;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+        }
+        .prompt-part {
+            padding: 2px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: inline-block;
+            margin: 2px;
+        }
+        .prompt-part:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .part-objective { background-color: var(--c-objective); color: #000; }
+        .part-context { background-color: var(--c-context); color: #000; }
+        .part-instructions { background-color: var(--c-instructions); color: #fff; }
+        .part-examples { background-color: var(--c-examples); color: #000; }
+        .part-constraints { background-color: var(--c-constraints); color: #fff; }
+        .part-persona { background-color: var(--c-persona); color: #000; }
+
+        .export-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--color-primary);
+            background-color: transparent;
+            color: var(--color-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .btn:hover, .btn.copied {
+            background-color: var(--color-primary);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(138, 121, 247, 0.5);
+        }
+
+        /* --- 6. Diagnostics Console --- */
+        #diagnostics-console {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 400px;
+            max-height: 300px;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+        }
+        #diagnostics-console.visible { display: flex; }
+        #diagnostics-console header {
+            padding: 0.5rem 1rem;
+            background: var(--color-primary);
+            color: #fff;
+            font-weight: bold;
+            cursor: move;
+        }
+        #diagnostics-log { padding: 1rem; overflow-y: auto; flex-grow: 1; }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+
+        <aside class="sidebar glass-card" id="sidebar">
+            <div class="sidebar-header">
+                <h1>PromptCraft 2.0</h1>
+            </div>
+            <div class="sidebar-search">
+                <input type="search" id="template-search" placeholder="🔍 Search templates...">
+            </div>
+            <ul class="template-list" id="template-list">
+                <!-- Template list will be populated by JS -->
+            </ul>
+        </aside>
+
+        <main class="main-content" id="main-content">
+            <div class="content-grid" id="content-grid">
+                <div class="studio-panel" id="studio-panel">
+                    <!-- This will be replaced by the welcome screen or the editor -->
+                </div>
+                <div class="anatomy-panel-wrapper">
+                    <div class="anatomy-panel main-card glass-card">
+                        <h2>Anatomy & Export</h2>
+                        <div id="prompt-anatomy-output"></div>
+                        <div class="export-buttons" style="margin-top: auto; padding-top: 1rem;">
+                            <button class="btn" id="export-text">📋 Plaintext</button>
+                            <button class="btn" id="export-md">Ⓜ️ Markdown</button>
+                            <button class="btn" id="export-json">📦 JSON</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="diagnostics-console" class="glass-card">
+        <header>Diagnostics Console</header>
+        <div id="diagnostics-log"></div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- 1. State, Constants & DOM Refs ---
+        const dom = {
+            sidebar: document.getElementById('sidebar'),
+            mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+            mainContent: document.getElementById('main-content'),
+            templateSearch: document.getElementById('template-search'),
+            templateList: document.getElementById('template-list'),
+            studioPanel: document.getElementById('studio-panel'),
+            promptAnatomyOutput: document.getElementById('prompt-anatomy-output'),
+            exportTextBtn: document.getElementById('export-text'),
+            exportMdBtn: document.getElementById('export-md'),
+            exportJsonBtn: document.getElementById('export-json'),
+            diagnosticsConsole: document.getElementById('diagnostics-console'),
+            diagnosticsLog: document.getElementById('diagnostics-log'),
+        };
+
+        const state = {
+            activeTemplateId: null,
+            promptData: {
+                objective: '', context: '', instructions: '', 
+                examples: '', constraints: '', persona: ''
+            }
+        };
+        
+        const componentMetadata = {
+            objective:    { label: 'Objective',    title: "The primary goal of the prompt." },
+            context:      { label: 'Context',      title: "Background information the LLM needs to understand the request." },
+            instructions: { label: 'Instructions', title: "Step-by-step instructions for the LLM to follow."},
+            examples:     { label: 'Examples',     title: "Few-shot examples to guide the output format and style."},
+            constraints:  { label: 'Constraints',  title: "Negative constraints or rules the LLM must obey."},
+            persona:      { label: 'Persona',      title: "The role or character the LLM should adopt."},
+        };
+        
+        // --- 2. MASSIVE TEMPLATE LIBRARY ---
+        const TEMPLATES = [
+            { category: "Content & Writing", 
+              items: [
+                { id: "blog-post", emoji: "✍️", name: "Blog Post Generator", desc: "Create a well-structured blog post from a topic.", prompt: { objective: "Write a comprehensive, engaging, and SEO-friendly blog post about [TOPIC].", context: "The target audience is [e.g., beginner developers, marketing professionals]. The desired tone is [e.g., informative, conversational, humorous].", instructions: "1. Start with a captivating headline.\n2. Write a brief introduction that hooks the reader.\n3. Create 3-5 main sections with clear subheadings.\n4. Include practical examples or data where appropriate.\n5. Conclude with a summary and a call-to-action.", persona: "Act as an expert blogger and subject matter expert in the specified topic.", constraints: "The post should be between 800 and 1200 words. Avoid overly technical jargon unless necessary for the audience.", examples: "" }},
+                { id: "social-media-posts", emoji: "📱", name: "Social Media Posts", desc: "Generate a set of posts for various platforms.", prompt: { objective: "Generate 5 social media posts for an announcement about [PRODUCT/EVENT].", context: "The platforms are Twitter, LinkedIn, and Instagram. The goal is to drive traffic to our website.", instructions: "1. For Twitter: Create 2 short, punchy tweets with relevant hashtags.\n2. For LinkedIn: Write 1 professional post focusing on business value.\n3. For Instagram: Write 2 posts with engaging captions and suggest visuals.\n4. Include a call-to-action with a link in each post.", persona: "Act as a savvy social media manager.", constraints: "Maintain a consistent brand voice, which is [e.g., witty, professional, inspiring].", examples: "" }},
+                { id: "video-script", emoji: "🎬", name: "Video Script Outline", desc: "Outline a script for an informational video.", prompt: { objective: "Create a script outline for a 5-minute YouTube video titled '[VIDEO_TITLE]'.", context: "The video is intended to explain a complex topic, [TOPIC], to a general audience.", instructions: "1. Hook (0-15s): Start with a surprising fact or question.\n2. Intro (15-45s): State what the video is about and why it matters.\n3. Main Point 1 (45s-2m): Explain the first key concept with a visual aid suggestion.\n4. Main Point 2 (2m-3m30s): Explain the second concept.\n5. Main Point 3 (3m30s-4m30s): Explain the final concept.\n6. Outro (4m30s-5m): Summarize the key takeaways and include a call-to-action (like, subscribe).", persona: "Act as a professional scriptwriter and educational content creator.", constraints: "The language must be simple and easy to understand. Each section should have estimated timings.", examples: "" }},
+                { id: "story-generator", emoji: "📖", name: "Creative Story Generator", desc: "Craft a short story from a basic premise.", prompt: { objective: "Write a short story (approx. 500 words) based on a given premise.", context: "The premise is: A character in a [GENRE, e.g., fantasy, sci-fi] world discovers a [OBJECT] that has a strange power, [POWER].", instructions: "1. Introduce the main character and their world.\n2. Describe the moment of discovery.\n3. Show the character experimenting with the object's power.\n4. Introduce a conflict or complication arising from its use.\n5. End the story on a compelling cliffhanger.", persona: "Act as a creative storyteller.", constraints: "Focus on 'show, don't tell'. Use vivid sensory details.", examples: "" }},
+                { id: "copy-editor", emoji: "📝", name: "Proofreader & Copy Editor", desc: "Improve spelling, grammar, and style of any text.", prompt: { objective: "Review the following text and improve it. Correct any spelling and grammar errors, enhance clarity and flow, and rephrase awkward sentences.", context: "The text is an excerpt from a [DOCUMENT_TYPE, e.g., business report, academic essay]. The goal is to make it sound more professional and polished.", instructions: "1. Read through the text to understand its purpose.\n2. Correct all spelling, punctuation, and grammatical mistakes.\n3. Identify and rewrite sentences that are unclear, verbose, or poorly structured.\n4. Ensure a consistent tone and style throughout the text.\n5. Provide the corrected version of the text below.", persona: "Act as a meticulous and experienced copy editor.", constraints: "Do not change the core meaning or intent of the original text. If a major change is needed, suggest it in a comment.", examples: "Original Text: 'The companies profits went up alot this qtr, its mainly because of the new marketing strat.'\nCorrected Text: 'The company's profits increased significantly this quarter, primarily due to the new marketing strategy.'" }},
+              ]},
+            { category: "Business & Marketing",
+              items: [
+                { id: "email-generator", emoji: "📧", name: "Professional Email Composer", desc: "Draft professional emails for any situation.", prompt: { objective: "Compose a professional email to [RECIPIENT_ROLE] regarding [SUBJECT].", context: "My goal is to [e.g., request a meeting, follow up on an application, provide a status update]. I need to maintain a polite and formal tone.", instructions: "1. Write a clear and concise subject line.\n2. Start with a professional salutation.\n3. In the first paragraph, state the purpose of the email directly.\n4. In the following paragraphs, provide necessary details or context.\n5. Conclude with a clear call-to-action or next step.\n6. End with a professional closing.", persona: "Act as an experienced business communicator.", constraints: "Keep the email brief and to the point. Ensure it is free of errors.", examples: "" }},
+                { id: "swot-analysis", emoji: "📊", name: "SWOT Analysis", desc: "Generate a SWOT analysis for a business or product.", prompt: { objective: "Conduct a SWOT analysis for [COMPANY/PRODUCT_NAME].", context: "[COMPANY/PRODUCT_NAME] is a [INDUSTRY] company that [DESCRIPTION_OF_BUSINESS]. Its main competitors are [COMPETITOR_1, COMPETITOR_2].", instructions: "Generate a four-quadrant SWOT analysis. For each quadrant, provide 3-5 distinct bullet points:\n- **Strengths**: Internal attributes that give an advantage.\n- **Weaknesses**: Internal attributes that are a disadvantage.\n- **Opportunities**: External factors that could be exploited.\n- **Threats**: External factors that could cause trouble.", persona: "Act as a strategic business analyst.", constraints: "Be realistic and base the analysis on the provided context. The points should be specific and actionable.", examples: "" }},
+                { id: "marketing-copy", emoji: "📣", name: "Marketing Ad Copy", desc: "Create compelling copy for an advertising campaign.", prompt: { objective: "Generate ad copy for a new product, [PRODUCT_NAME].", context: "[PRODUCT_NAME] is a [PRODUCT_CATEGORY] that solves [PROBLEM]. Its target audience is [AUDIENCE_DESCRIPTION]. The unique selling proposition (USP) is [USP].", instructions: "Create the following ad copy variants:\n1. **Headline (3 options)**: Short, attention-grabbing headlines (under 10 words).\n2. **Body Copy (2 options)**: A short paragraph (2-3 sentences) that highlights the benefits and USP.\n3. **Call-to-Action (3 options)**: Clear, urgent CTAs (e.g., 'Shop Now', 'Learn More', 'Get Your Free Trial').", persona: "Act as a senior direct-response copywriter.", constraints: "Use persuasive language and focus on customer benefits, not just product features.", examples: "" }},
+                { id: "job-description", emoji: "👔", name: "Job Description Writer", desc: "Create a comprehensive and appealing job description.", prompt: { objective: "Write a job description for a [JOB_TITLE] position.", context: "The role is at a [COMPANY_TYPE, e.g., tech startup, financial firm] in the [DEPARTMENT] department. The ideal candidate has [X] years of experience and skills in [SKILL_1, SKILL_2].", instructions: "Structure the job description as follows:\n1. **Job Summary**: A brief, engaging overview of the role.\n2. **Responsibilities**: A bulleted list of key duties and tasks.\n3. **Qualifications**: A bulleted list of required skills, experience, and education.\n4. **Preferred Qualifications**: A bulleted list of 'nice-to-have' skills.\n5. **Company Boilerplate**: A short paragraph about our company culture and mission.", persona: "Act as a professional HR recruiter.", constraints: "Use inclusive language. Clearly distinguish between required and preferred qualifications.", examples: "" }},
+                { id: "press-release", emoji: "📰", name: "Press Release Generator", desc: "Draft a standard press release for an announcement.", prompt: { objective: "Write a professional press release announcing [NEWS_EVENT, e.g., a new product launch, a funding round, a partnership].", context: "The announcement is for [COMPANY_NAME]. The key details are: [LIST_KEY_DETAILS_OF_THE_NEWS]. A quote should be included from [PERSON'S_NAME], [PERSON'S_TITLE].", instructions: "Format the press release correctly:\n1. **FOR IMMEDIATE RELEASE** at the top.\n2. **Headline**: Compelling and newsworthy.\n3. **Dateline**: CITY, State – Month Day, Year –\n4. **Introduction (Lede)**: The most important information (who, what, when, where, why) in the first paragraph.\n5. **Body**: Further details, context, and the quote.\n6. **Boilerplate**: Standard paragraph about the company.\n7. **Media Contact**: Name, title, email, phone.\n8. **###** to signify the end.", persona: "Act as a public relations (PR) specialist.", constraints: "The tone must be objective and factual. The headline should be under 15 words.", examples: "" }},
+              ]},
+            { category: "Technical & Development",
+              items: [
+                { id: "code-generator", emoji: "💻", name: "Code Snippet Generator", desc: "Write code in any language to solve a problem.", prompt: { objective: "Write a function in [PROGRAMMING_LANGUAGE] that [DESCRIPTION_OF_FUNCTIONALITY].", context: "The function should accept [INPUT_PARAMETERS] as input and return [EXPECTED_OUTPUT].", instructions: "1. Define the function with clear parameter names and type hints if applicable.\n2. Implement the core logic efficiently.\n3. Include comments to explain complex parts of the code.\n4. Provide a simple example of how to use the function.", persona: "Act as a senior software engineer specializing in the specified language.", constraints: "The code should be clean, readable, and follow best practices for the language.", examples: "Language: Python\nFunctionality: 'takes a list of integers and returns a new list with only the even numbers.'\nResult:\n```python\ndef filter_even_numbers(numbers: list[int]) -> list[int]:\n    # Returns a new list containing only the even numbers from the input list.\n    return [num for num in numbers if num % 2 == 0]\n\n# Example usage:\nprint(filter_even_numbers([1, 2, 3, 4, 5, 6])) # Output: [2, 4, 6]\n```" }},
+                { id: "code-explainer", emoji: "🧠", name: "Code Explainer", desc: "Get a detailed explanation of a piece of code.", prompt: { objective: "Explain the following code snippet line-by-line and summarize its overall purpose and functionality.", context: "The code is written in [PROGRAMMING_LANGUAGE]. I need to understand how it works, its time/space complexity, and any potential improvements.", instructions: "1. First, provide a high-level summary of what the code does.\n2. Then, go through the code block, explaining each significant line or block of logic.\n3. Analyze the Big O time and space complexity.\n4. Suggest any potential refactoring, performance improvements, or edge cases to consider.", persona: "Act as an experienced code reviewer and computer science tutor.", constraints: "The explanation should be clear enough for an intermediate developer to understand.", examples: "" }},
+                { id: "regex-generator", emoji: "🤯", name: "Regex Generator", desc: "Create complex regular expressions from a description.", prompt: { objective: "Generate a regular expression (regex) that can validate or find a specific pattern.", context: "The pattern I need to match is: [NATURAL_LANGUAGE_DESCRIPTION_OF_PATTERN, e.g., 'a valid email address', 'a URL with http or https', 'a date in YYYY-MM-DD format'].", instructions: "1. Provide the regex pattern itself.\n2. Explain each part of the regex pattern and what it does.\n3. Give examples of strings that would match the pattern.\n4. Give examples of strings that would NOT match the pattern.", persona: "Act as a regex expert.", constraints: "The regex should be compatible with [e.g., Python, JavaScript, PCRE].", examples: "" }},
+                { id: "api-design", emoji: "🌐", name: "API Endpoint Design", desc: "Design a RESTful API endpoint for a specific resource.", prompt: { objective: "Design a set of RESTful API endpoints for managing a resource: [RESOURCE_NAME, e.g., 'User', 'Product'].", context: "The resource has the following attributes: [ATTRIBUTE_1, ATTRIBUTE_2, ATTRIBUTE_3]. We need standard CRUD (Create, Read, Update, Delete) functionality.", instructions: "For each of the 5 common endpoints, specify:\n1. **Endpoint Name** (e.g., List, Get, Create, Update, Delete)\n2. **HTTP Method** (e.g., GET, POST, PUT, DELETE)\n3. **URL Path** (e.g., /users, /users/{id})\n4. **Example Request Body** (for POST/PUT)\n5. **Example Success Response** (with status code)", persona: "Act as a senior backend architect.", constraints: "Follow RESTful API design best practices, including proper use of HTTP methods and status codes.", examples: "" }},
+                { id: "technical-docs", emoji: "📚", name: "Technical Documentation Writer", desc: "Write clear documentation for a function or feature.", prompt: { objective: "Write technical documentation for a feature named [FEATURE_NAME].", context: "The feature allows users to [FEATURE_FUNCTIONALITY]. It is accessed via [HOW_TO_ACCESS, e.g., an API endpoint, a button in the UI].", instructions: "Create the documentation with the following sections:\n1. **Overview**: A short description of the feature and its purpose.\n2. **How to Use**: Step-by-step instructions for using the feature.\n3. **Parameters/Options** (if any): A table listing available parameters, their types, and descriptions.\n4. **Example**: A clear, practical example of the feature in use.\n5. **Troubleshooting/FAQs**: List 2-3 common issues and their solutions.", persona: "Act as a professional technical writer.", constraints: "The documentation should be clear, concise, and easy for a developer to follow.", examples: "" }},
+              ]},
+            { category: "Creative & Brainstorming",
+              items: [
+                { id: "brainstorm-ideas", emoji: "💡", name: "Idea Brainstormer", desc: "Generate a list of creative ideas for any topic.", prompt: { objective: "Brainstorm 10 creative and diverse ideas for [SUBJECT_OF_BRAINSTORM, e.g., 'a new mobile app', 'a company team-building event', 'a YouTube channel'].", context: "The target audience/participants are [AUDIENCE_DESCRIPTION]. The key constraints are [e.g., a limited budget, a specific theme, must be doable remotely].", instructions: "For each idea, provide:\n1. A catchy name or title.\n2. A one-sentence description of the core concept.\n3. A key feature or reason why it's a good idea.", persona: "Act as a highly creative brainstorming facilitator.", constraints: "Think outside the box. Provide a mix of practical and ambitious ideas.", examples: "" }},
+                { id: "analogy-generator", emoji: "🔗", name: "Analogy Generator", desc: "Explain a complex topic using simple analogies.", prompt: { objective: "Explain the complex topic of [COMPLEX_TOPIC, e.g., 'blockchain', 'quantum computing', 'machine learning'] using three different simple analogies.", context: "The explanation is for a complete beginner with no prior knowledge of the subject.", instructions: "For each analogy:\n1. State the analogy clearly (e.g., 'X is like Y').\n2. Explain the parallels between the complex topic and the simple analogy.\n3. Point out one limitation or way in which the analogy is not perfect, to ensure accuracy.", persona: "Act as a brilliant science communicator like Carl Sagan or Neil deGrasse Tyson.", constraints: "The analogies should be relatable and easy to grasp for a non-technical audience.", examples: "" }},
+                { id: "mind-map", emoji: "🗺️", name: "Mind Map Generator", desc: "Create a text-based mind map for a central idea.", prompt: { objective: "Generate a hierarchical mind map structure in text format for the central topic: [CENTRAL_TOPIC].", context: "I need to explore sub-topics and related concepts for a presentation or essay.", instructions: "Create a mind map with the central topic at the root. Use indentation to represent branches. It should have at least 3 main branches, and each main branch should have at least 3 sub-branches.\n\nExample structure:\n[CENTRAL_TOPIC]\n  - Main Branch 1\n    - Sub-branch 1.1\n    - Sub-branch 1.2\n    - Sub-branch 1.3\n  - Main Branch 2\n    - Sub-branch 2.1\n    ...", persona: "Act as a structured and organized thinker.", constraints: "The branches should be logically related to the parent topic.", examples: "" }},
+                { id: "debate-topic-generator", emoji: "🗣️", name: "Debate Topic Generator", desc: "Create compelling arguments for both sides of a topic.", prompt: { objective: "For the debate topic '[TOPIC]', generate 3 strong arguments for the 'For' side and 3 strong arguments for the 'Against' side.", context: "This is for a formal debate or to help me understand a complex issue from multiple perspectives.", instructions: "Structure the output as follows:\n\n**Arguments FOR [TOPIC]:**\n1. [Argument 1 with a brief explanation]\n2. [Argument 2 with a brief explanation]\n3. [Argument 3 with a brief explanation]\n\n**Arguments AGAINST [TOPIC]:**\n1. [Argument 1 with a brief explanation]\n2. [Argument 2 with a brief explanation]\n3. [Argument 3 with a brief explanation]", persona: "Act as an impartial and logical debate coach.", constraints: "The arguments should be based on evidence, logic, or common ethical frameworks, not just opinion.", examples: "" }},
+                { id:g' "product-name-generator", emoji: "🏷️", name: "Product Name Generator", desc: "Brainstorm creative names for a product or business.", prompt: { objective: "Generate 15 creative and memorable name ideas for a new [PRODUCT/BUSINESS_TYPE].", context: "The product is [BRIEF_DESCRIPTION]. The target market is [AUDIENCE_DESCRIPTION]. The brand's key attributes are [e.g., modern, eco-friendly, luxurious, playful].", instructions: "Organize the names into three categories:\n1. **Descriptive**: Names that clearly describe what the product does.\n2. **Evocative**: Names that suggest a feeling or benefit.\n3. **Invented**: Modern, brandable names that are unique.", persona: "Act as a professional branding expert and naming consultant.", constraints: "The names should be easy to pronounce and spell. Avoid names that are already widely used.", examples: "" }},
+              ]},
+            { category: "Personal & Lifestyle",
+              items: [
+                { id: "trip-planner", emoji: "✈️", name: "Trip Itinerary Planner", desc: "Create a detailed travel itinerary.", prompt: { objective: "Create a detailed [NUMBER]-day travel itinerary for a trip to [DESTINATION_CITY/COUNTRY].", context: "The trip is for [NUMBER] people. Our interests are [e.g., history, food, hiking, relaxation]. The budget is approximately [e.g., budget, mid-range, luxury].", instructions: "For each day, provide a plan:\n- **Morning**: Suggest one main activity or sight.\n- **Lunch**: Recommend a type of local cuisine or a specific restaurant.\n- **Afternoon**: Suggest another activity or area to explore.\n- **Dinner**: Recommend a dinner spot.\n- **Evening**: Suggest a relaxing activity.", persona: "Act as an expert travel agent.", constraints: "Group activities geographically to minimize travel time. Include practical tips like transportation advice.", examples: "" }},
+                { id: "workout-planner", emoji: "💪", name: "Workout Plan Generator", desc: "Design a personalized weekly workout plan.", prompt: { objective: "Create a [NUMBER]-day weekly workout plan for me.", context: "My fitness goal is [e.g., weight loss, muscle gain, improved cardio]. I have access to [e.g., a full gym, dumbbells at home, no equipment]. I can work out for [MINUTES] per session.", instructions: "For each workout day, provide:\n- **Focus**: (e.g., Upper Body, Lower Body, Full Body, Cardio)\n- **Exercises**: A list of 4-6 exercises.\n- **Sets & Reps**: The number of sets and repetitions for each exercise (e.g., 3 sets of 10-12 reps).\n- **Rest**: Recommended rest time between sets.", persona: "Act as a certified personal trainer.", constraints: "Include a warm-up and cool-down routine. The plan should be balanced and sustainable.", examples: "" }},
+                { id: "meal-planner", emoji: "🥗", name: "Weekly Meal Planner", desc: "Generate a healthy meal plan for the week.", prompt: { objective: "Create a 7-day healthy meal plan.", context: "My dietary preferences are [e.g., vegetarian, low-carb, balanced]. I have a food allergy to [ALLERGY, or 'none']. My goal is to eat healthier and save time.", instructions: "For each day of the week, list options for:\n- **Breakfast**\n- **Lunch**\n- **Dinner**\n- **Snack (1-2 options)**\nAlso, generate a consolidated grocery list for the entire week based on the plan.", persona: "Act as a professional nutritionist.", constraints: "The meals should be relatively simple to prepare (under 30-40 minutes). Focus on whole foods.", examples: "" }},
+                { id: "goal-setter", emoji: "🎯", name: "Goal Setting Assistant", desc: "Break down a large goal into actionable steps.", prompt: { objective: "Help me break down my large goal of '[LARGE_GOAL]' into smaller, actionable steps using the SMART framework.", context: "My timeline to achieve this goal is [TIMELINE, e.g., 3 months, 1 year]. The resources I have are [RESOURCES]. Potential obstacles are [OBSTACLES].", instructions: "Structure the output as follows:\n1. **Specific**: Clearly define the goal.\n2. **Measurable**: How will progress be tracked?\n3. **Achievable**: Is the goal realistic? Break it into quarterly or monthly milestones.\n4. **Relevant**: Why is this goal important to me?\n5. **Time-Bound**: Create a timeline with specific deadlines for each milestone and key tasks.", persona: "Act as a motivational coach and productivity expert.", constraints: "The steps should be small enough to not be overwhelming.", examples: "" }},
+                { id: "thank-you-note", emoji: "💌", name: "Thank You Note Writer", desc: "Write a heartfelt and personalized thank you note.", prompt: { objective: "Write a thank you note to [PERSON'S_NAME].", context: "I want to thank them for [REASON_FOR_THANKS, e.g., a specific gift, their help with a project, their hospitality].", instructions: "1. Start with a warm and personal greeting.\n2. Express your gratitude clearly and specifically mention the gift/act.\n3. Add a personal touch: mention how you will use the gift or how their help impacted you.\n4. Reiterate your thanks and close with a warm regards.", persona: "Act as a thoughtful and eloquent friend.", constraints: "The tone should be sincere and heartfelt, not generic.", examples: "" }},
+              ]},
+            { category: "Education & Learning",
+              items: [
+                { id: "topic-summarizer", emoji: "📑", name: "Complex Topic Summarizer", desc: "Summarize any topic into key points.", prompt: { objective: "Summarize the key points of [TOPIC] in a way that is easy to understand.", context: "I am a student trying to get a quick overview of the topic before a deeper dive. I need the most important concepts.", instructions: "Provide the summary in the following format:\n1. **High-Level Overview**: A 2-3 sentence summary of the topic.\n2. **Key Concepts**: A bulleted list of the 3-5 most important concepts or principles, with a brief explanation for each.\n3. **Key Terminology**: A list of 5-7 essential terms and their simple definitions.", persona: "Act as an experienced and effective teacher.", constraints: "Avoid jargon where possible, or explain it simply if necessary.", examples: "" }},
+                { id: "learning-plan", emoji: "🎓", name: "Learning Plan Creator", desc: "Create a structured plan to learn a new skill.", prompt: { objective: "Create a structured 30-day learning plan to acquire a new skill: [SKILL_TO_LEARN, e.g., 'conversational Spanish', 'Python programming', 'digital photography'].", context: "I am a complete beginner and can dedicate [HOURS] per week to learning.", instructions: "Break the plan down into four weeks:\n- **Week 1: The Basics**: List core concepts and resources (e.g., specific websites, books, videos).\n- **Week 2: Foundational Practice**: Suggest practical exercises and small projects.\n- **Week 3: Intermediate Concepts**: Introduce more advanced topics.\n- **Week 4: Application & Review**: A larger project to apply all learned skills and a review plan.", persona: "Act as an expert instructional designer.", constraints: "The plan should be progressive, building on previous knowledge. Resources should be mostly free and accessible.", examples: "" }},
+                { id: "quiz-generator", emoji: "❓", name: "Quiz & Test Generator", desc: "Create a quiz to test knowledge on a subject.", prompt: { objective: "Generate a 10-question quiz on the subject of [SUBJECT].", context: "The quiz is for [AUDIENCE, e.g., 'high school students', 'new employees'] to test their understanding of the fundamentals.", instructions: "Create a mix of question types:\n- 4 Multiple Choice questions (with 4 options each).\n- 3 True/False questions.\n- 3 Short Answer questions.\nAfter the questions, provide a separate answer key.", persona: "Act as a curriculum developer and teacher.", constraints: "The questions should cover a range of difficulty from easy to moderate.", examples: "" }},
+                { id: "essay-outline", emoji: "🏛️", name: "Essay Outline Creator", desc: "Structure a compelling and organized essay.", prompt: { objective: "Create a detailed outline for a 5-paragraph argumentative essay on the topic: '[ESSAY_TOPIC]'.", context: "My main argument (thesis) is: [THESIS_STATEMENT].", instructions: "Structure the outline as follows:\n**I. Introduction**\n  A. Hook (a captivating opening)\n  B. Background context\n  C. Thesis Statement\n**II. Body Paragraph 1**\n  A. Topic Sentence (Main argument 1)\n  B. Evidence/Example\n  C. Explanation\n**III. Body Paragraph 2**\n  A. Topic Sentence (Main argument 2)\n  B. Evidence/Example\n  C. Explanation\n**IV. Body Paragraph 3**\n  A. Topic Sentence (Counter-argument & rebuttal)\n  B. Evidence/Example\n  C. Explanation\n**V. Conclusion**\n  A. Restate Thesis\n  B. Summarize main points\n  C. Final concluding thought", persona: "Act as an experienced writing professor.", constraints: "The outline should be logical and flow smoothly from one point to the next.", examples: "" }},
+              ]}
+        ];
+
+        // --- 3. Core Functions ---
+        function log(message) {
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            dom.diagnosticsLog.prepend(entry);
+        }
+        
+        function saveState() {
+            try {
+                const appState = {
+                    activeTemplateId: state.activeTemplateId,
+                    promptData: state.promptData
+                };
+                localStorage.setItem('promptCraftState2.0', JSON.stringify(appState));
+                log('State saved.');
+            } catch (e) {
+                log('Error saving state.');
+            }
+        }
+        
+        function loadState() {
+            try {
+                const savedState = localStorage.getItem('promptCraftState2.0');
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    state.activeTemplateId = parsedState.activeTemplateId;
+                    state.promptData = parsedState.promptData;
+                    log('State loaded.');
+                }
+            } catch (e) {
+                log('Error loading state.');
+            }
+        }
+
+        function renderAll() {
+            renderVisualAnatomy();
+            renderAllSuggestions();
+        }
+
+        function renderVisualAnatomy() {
+            dom.promptAnatomyOutput.innerHTML = '';
+            Object.keys(state.promptData).forEach(part => {
+                const text = state.promptData[part]?.trim();
+                if (text) {
+                    const span = document.createElement('span');
+                    span.textContent = text;
+                    span.className = `prompt-part part-${part}`;
+                    span.title = componentMetadata[part].title;
+                    dom.promptAnatomyOutput.appendChild(span);
+                    dom.promptAnatomyOutput.appendChild(document.createTextNode(' '));
+                }
+            });
+        }
+        
+        function getQualityScore(part, text) {
+            if (!text || text.trim().length === 0) return { score: 0, tip: "This section is empty. Filling it out can improve results." };
+            
+            let score = 1;
+            let tip = 'Good start!';
+            const len = text.length;
+
+            switch (part) {
+                case 'objective':
+                    const actionVerbs = ['generate', 'create', 'write', 'summarize', 'list', 'compare', 'classify', 'extract', 'translate', 'explain', 'act as'];
+                    if (actionVerbs.some(v => text.toLowerCase().startsWith(v))) score += 2;
+                    if (len > 15) score += 1;
+                    if (text.includes('[') && text.includes(']')) score += 1; // Placeholder bonus
+                    tip = score < 3 ? 'Start with a strong action verb (e.g., "Generate...").' : 'Clear, actionable objective.';
+                    break;
+                case 'context':
+                    if (len > 20) score += 2;
+                    if (len > 50) score += 2;
+                    tip = score < 3 ? 'Add more background details for better results.' : 'Rich context helps the AI.';
+                    break;
+                case 'instructions':
+                    if (len > 20) score += 1;
+                    if (/(1\.|\-|\*)/.test(text)) score += 2; // Check for lists
+                    if (text.split('\n').length > 1) score += 1;
+                    tip = score < 3 ? 'Use a numbered or bulleted list for clearer steps.' : 'Step-by-step instructions are very effective.';
+                    break;
+                case 'examples':
+                    if (len > 15) score += 2;
+                    if (/good example|bad example|input:|output:/i.test(text)) score += 2;
+                    tip = score < 3 ? 'Showing an example (or non-example) is powerful.' : 'Excellent use of few-shot prompting!';
+                    break;
+                case 'constraints':
+                    if (len > 10) score += 2;
+                    if (/do not|don't|avoid|must not|ensure/i.test(text)) score += 2;
+                    tip = score < 3 ? 'Add specific rules like "Do not use..."' : 'Well-defined constraints prevent unwanted output.';
+                    break;
+                case 'persona':
+                    if (len > 15) score += 2;
+                    if (/act as|you are a/i.test(text)) score += 2;
+                    tip = score < 3 ? 'Try starting with "Act as a..." for a stronger persona.' : 'A well-defined persona sets the right tone.';
+                    break;
+            }
+            
+            return { score: Math.min(score, 5), tip };
+        }
+
+        function renderSuggestion(part) {
+            const { score, tip } = getQualityScore(part, state.promptData[part]);
+            const tipEl = document.getElementById(`tip-${part}`);
+            const starsEl = document.getElementById(`stars-${part}`);
+            
+            if (tipEl) tipEl.textContent = tip;
+            if (starsEl) {
+                starsEl.innerHTML = '';
+                for (let i = 0; i < 5; i++) {
+                    const starImg = document.createElement('img');
+                    starImg.className = 'star';
+                    starImg.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='${i < score ? getComputedStyle(document.documentElement).getPropertyValue('--star-active').substring(1) : 'none'}' stroke='${getComputedStyle(document.documentElement).getPropertyValue(i < score ? '--star-active' : '--star-inactive').substring(1)}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'%3E%3C/polygon%3E%3C/svg%3E`;
+                    starImg.alt = i < score ? "Full star" : "Empty star";
+                    starsEl.appendChild(starImg);
+                }
+            }
+        }
+        
+        function renderAllSuggestions() {
+            if (state.activeTemplateId) {
+                Object.keys(state.promptData).forEach(part => renderSuggestion(part));
+            }
+        }
+        
+        function handleInput(e) {
+            const part = e.target.dataset.part;
+            state.promptData[part] = e.target.value;
+            saveState();
+            renderVisualAnatomy();
+            
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => renderSuggestion(part));
+            } else {
+                setTimeout(() => renderSuggestion(part), 200);
+            }
+        }
+        
+        // --- 4. Template & UI Rendering ---
+        function renderTemplateList(filter = '') {
+            dom.templateList.innerHTML = '';
+            const filterText = filter.toLowerCase();
+            TEMPLATES.forEach(category => {
+                const filteredItems = category.items.filter(item => 
+                    item.name.toLowerCase().includes(filterText) || 
+                    item.desc.toLowerCase().includes(filterText)
+                );
+
+                if (filteredItems.length > 0) {
+                    const categoryHeader = document.createElement('h3');
+                    categoryHeader.textContent = category.category;
+                    dom.templateList.appendChild(categoryHeader);
+
+                    filteredItems.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'template-item';
+                        li.innerHTML = `
+                            <a href="#" data-id="${item.id}">
+                                <div class="name">${item.emoji} ${item.name}</div>
+                                <div class="desc">${item.desc}</div>
+                            </a>`;
+                        dom.templateList.appendChild(li);
+                    });
+                }
+            });
+            updateActiveTemplateLink();
+        }
+
+        function renderEditor() {
+            dom.studioPanel.innerHTML = `
+                <div class="main-card glass-card">
+                    <h2>Prompt Studio</h2>
+                    <form id="prompt-form" onsubmit="return false;">
+                        ${Object.keys(componentMetadata).map(part => `
+                            <details id="details-${part}" ${part === 'objective' ? 'open' : ''}>
+                                <summary>${componentMetadata[part].label}</summary>
+                                <div class="details-content">
+                                    <textarea id="input-${part}" data-part="${part}" rows="4" placeholder="Enter ${part}..."></textarea>
+                                    <div class="suggestion-box">
+                                        <span class="tip" id="tip-${part}"></span>
+                                        <div class="stars" id="stars-${part}"></div>
+                                    </div>
+                                </div>
+                            </details>
+                        `).join('')}
+                    </form>
+                </div>
+            `;
+            // Re-bind listeners to new textareas
+            dom.studioPanel.querySelectorAll('textarea').forEach(input => {
+                input.addEventListener('input', handleInput);
+            });
+        }
+        
+        function renderWelcomeScreen() {
+            dom.studioPanel.innerHTML = `
+                <div class="welcome-screen glass-card">
+                    <h2>Welcome to PromptCraft 2.0</h2>
+                    <p>Your ultimate studio for crafting, refining, and managing high-quality prompts. Select a template from the sidebar to get started!</p>
+                </div>`;
+        }
+
+        function applyTemplate(templateId) {
+            const template = TEMPLATES.flatMap(c => c.items).find(t => t.id === templateId);
+            if (!template) return;
+
+            if (!state.activeTemplateId) {
+                renderEditor();
+            }
+            
+            state.activeTemplateId = templateId;
+            state.promptData = { ...template.prompt };
+            
+            Object.keys(state.promptData).forEach(part => {
+                const inputEl = document.getElementById(`input-${part}`);
+                if (inputEl) inputEl.value = state.promptData[part];
+            });
+            
+            updateActiveTemplateLink();
+            renderAll();
+            saveState();
+            log(`Applied template: ${template.name}`);
+        }
+
+        function updateActiveTemplateLink() {
+            document.querySelectorAll('.template-item a').forEach(a => {
+                a.classList.toggle('active', a.dataset.id === state.activeTemplateId);
+            });
+        }
+        
+        // --- 5. Export & Utility Functions ---
+        function generateFullPrompt(format = 'text') {
+            const parts = [];
+            if (format === 'md') {
+                Object.keys(state.promptData).forEach(part => {
+                    const text = state.promptData[part]?.trim();
+                    if (text) parts.push(`**${componentMetadata[part].label}:**\n${text}`);
+                });
+                return parts.join('\n\n---\n\n');
+            }
+            
+            if (format === 'json') {
+                const jsonObject = {};
+                Object.keys(state.promptData).forEach(part => {
+                    const text = state.promptData[part]?.trim();
+                    if (text) jsonObject[part] = text;
+                });
+                return JSON.stringify(jsonObject, null, 2);
+            }
+
+            Object.keys(state.promptData).forEach(part => {
+                const text = state.promptData[part]?.trim();
+                if (text) parts.push(text);
+            });
+            return parts.join('\n\n');
+        }
+
+        async function copyToClipboard(text, button) {
+            if (!text || !navigator.clipboard) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                alert('Failed to copy to clipboard.');
+            }
+        }
+
+        // --- 6. Event Listeners ---
+        dom.mobileMenuBtn.addEventListener('click', () => dom.sidebar.classList.toggle('is-open'));
+        dom.mainContent.addEventListener('click', () => dom.sidebar.classList.remove('is-open'));
+        dom.templateSearch.addEventListener('input', e => renderTemplateList(e.target.value));
+        dom.templateList.addEventListener('click', e => {
+            const link = e.target.closest('a');
+            if (link) {
+                e.preventDefault();
+                applyTemplate(link.dataset.id);
+                if (window.innerWidth < 1024) {
+                    dom.sidebar.classList.remove('is-open');
+                }
+            }
+        });
+
+        dom.exportTextBtn.addEventListener('click', (e) => copyToClipboard(generateFullPrompt('text'), e.currentTarget));
+        dom.exportMdBtn.addEventListener('click', (e) => copyToClipboard(generateFullPrompt('md'), e.currentTarget));
+        dom.exportJsonBtn.addEventListener('click', (e) => copyToClipboard(generateFullPrompt('json'), e.currentTarget));
+        
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
+                e.preventDefault();
+                dom.diagnosticsConsole.classList.toggle('visible');
+            }
+        });
+        
+        // --- 7. Initialization ---
+        function init() {
+            log('PromptCraft 2.0 Initializing...');
+            loadState();
+            renderTemplateList();
+
+            if (state.activeTemplateId) {
+                renderEditor();
+                Object.keys(state.promptData).forEach(part => {
+                    const inputEl = document.getElementById(`input-${part}`);
+                    if (inputEl) inputEl.value = state.promptData[part];
+                });
+                updateActiveTemplateLink();
+                renderAll();
+            } else {
+                renderWelcomeScreen();
+            }
+            log('Ready.');
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
